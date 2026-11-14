@@ -23,14 +23,16 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Preparar pasta www e Capacitor
+      - name: Preparar pasta www, Capacitor e Ícone
         run: |
-          mkdir -p www
+          mkdir -p www assets
           cp index.html www/
+          cp icon.png assets/icon.png
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/assets
           npx cap init "Fuja do Jurandir 3D" "com.jurandir.jogo" --web-dir=www
           npx cap add android
+          npx capacitor-assets generate --android
           npx cap sync
 
       - name: Corrigir conflito Kotlin e Compilar APK
@@ -60,10 +62,11 @@ jobs:
       - name: Configurar Electron e Gerar Windows
         run: |
           npm init -y
-          npm install electron electron-packager --save-dev
-          Set-Content -Path "main.js" -Value 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true }); win.loadFile("index.html"); });'
+          npm install electron electron-packager png-to-ico --save-dev
+          node -e "const fs = require('fs'); const pngToIco = require('png-to-ico'); pngToIco('icon.png').then(buf => fs.writeFileSync('icon.ico', buf));"
+          Set-Content -Path "main.js" -Value 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true, icon: "icon.png" }); win.loadFile("index.html"); });'
           (Get-Content package.json) -replace '"main": "index.js"', '"main": "main.js"' | Set-Content package.json
-          npx electron-packager . "FujaDoJurandir" --platform=win32 --arch=x64 --out=dist
+          npx electron-packager . "FujaDoJurandir" --platform=win32 --arch=x64 --icon=icon.ico --out=dist
 
       - name: Salvar Windows para download
         uses: actions/upload-artifact@v4
@@ -86,9 +89,9 @@ jobs:
         run: |
           npm init -y
           npm install electron electron-packager --save-dev
-          echo 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true }); win.loadFile("index.html"); });' > main.js
+          echo 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true, icon: "icon.png" }); win.loadFile("index.html"); });' > main.js
           sed -i 's/"main": "index.js"/"main": "main.js"/' package.json
-          npx electron-packager . "FujaDoJurandir" --platform=linux --arch=x64 --out=dist
+          npx electron-packager . "FujaDoJurandir" --platform=linux --arch=x64 --icon=icon.png --out=dist
 
       - name: Salvar Linux para download
         uses: actions/upload-artifact@v4
