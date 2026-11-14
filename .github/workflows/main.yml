@@ -23,11 +23,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Preparar pasta www, Capacitor e Ícone
+      - name: Converter imagem e Preparar Capacitor
         run: |
           mkdir -p www assets
           cp index.html www/
-          cp icon.png assets/icon.png
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          convert image_bc9584a7.jpg -resize 1024x1024! assets/icon.png
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/assets
           npx cap init "Fuja do Jurandir 3D" "com.jurandir.jogo" --web-dir=www
@@ -62,8 +63,8 @@ jobs:
       - name: Configurar Electron e Gerar Windows
         run: |
           npm init -y
-          npm install electron electron-packager png-to-ico --save-dev
-          node -e "const fs = require('fs'); const pngToIco = require('png-to-ico'); pngToIco('icon.png').then(buf => fs.writeFileSync('icon.ico', buf));"
+          npm install electron electron-packager jimp png-to-ico --save-dev
+          node -e "const Jimp = require('jimp'); const fs = require('fs'); const pngToIco = require('png-to-ico'); Jimp.read('image_bc9584a7.jpg').then(img => img.resize(512, 512).writeAsync('icon.png')).then(() => pngToIco('icon.png')).then(buf => fs.writeFileSync('icon.ico', buf));"
           Set-Content -Path "main.js" -Value 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true, icon: "icon.png" }); win.loadFile("index.html"); });'
           (Get-Content package.json) -replace '"main": "index.js"', '"main": "main.js"' | Set-Content package.json
           npx electron-packager . "FujaDoJurandir" --platform=win32 --arch=x64 --icon=icon.ico --out=dist
@@ -87,6 +88,8 @@ jobs:
 
       - name: Configurar Electron e Gerar Linux
         run: |
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          convert image_bc9584a7.jpg -resize 512x512! icon.png
           npm init -y
           npm install electron electron-packager --save-dev
           echo 'const { app, BrowserWindow } = require("electron"); app.whenReady().then(() => { const win = new BrowserWindow({ width: 1024, height: 768, autoHideMenuBar: true, icon: "icon.png" }); win.loadFile("index.html"); });' > main.js
